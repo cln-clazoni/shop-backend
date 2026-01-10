@@ -74,6 +74,7 @@ router.get("/catalogo-pdf", async (req, res) => {
     const browser = await puppeteer.launch({
       headless: true, // headless moderno compatible
       args: ["--no-sandbox", "--disable-setuid-sandbox"], // 🔹 obligatorio en Render
+      executablePath: "/tmp/puppeteer-cache/linux-*/chrome", // path donde Puppeteer instaló Chromium
     });
 
     const page = await browser.newPage();
@@ -108,6 +109,5 @@ router.get("/catalogo-pdf", async (req, res) => {
     });
   }
 });
-
 
 module.exports = router;
