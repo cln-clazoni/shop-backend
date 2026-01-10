@@ -66,7 +66,7 @@ router.get("/catalogo-pdf", async (req, res) => {
     const dataType = await getDatabaseDataType();
     const tipos = parseNotionDataType(dataType.results);
 
-    const dataBranch = await getDatabaseDataBranch();
+    const dataBranch = await getDatabaseDataBranch(); 
     const marcas = parseNotionDataBranch(dataBranch.results);
 
     const html = generateHTML(instrumentos, tipos, marcas);
@@ -74,7 +74,8 @@ router.get("/catalogo-pdf", async (req, res) => {
     // 🔹 Puppeteer para Render
     const browser = await puppeteer.launch({
       headless: true, // headless moderno compatible
-      args: ["--no-sandbox", "--disable-setuid-sandbox"], // 🔹 obligatorio en Render
+      args: ["--no-sandbox", "--disable-setuid-sandbox", "--single-process", "--no-zygote"], // 🔹 obligatorio en Render
+      executablePath: process.env.NODE_ENV === "production" ? process.env.PUPPETEER_EXECUTABLE_PATH : puppeteer.executablePath(),
     });
 
     const page = await browser.newPage();
