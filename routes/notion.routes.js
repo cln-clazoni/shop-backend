@@ -59,48 +59,41 @@ router.get("/marcas", async (req, res) => {
   }
 });
 router.get("/catalogo-pdf", async (req, res) => {
+  console.log("Generando PDF del catálogo...");
+  req.setTimeout(0);
+  res.setTimeout(0);
   try {
     const data = await getDatabaseData();
     const instrumentos = parseNotionData(data.results);
-
     const dataType = await getDatabaseDataType();
     const tipos = parseNotionDataType(dataType.results);
-
     const dataBranch = await getDatabaseDataBranch();
     const marcas = parseNotionDataBranch(dataBranch.results);
 
     const html = generateHTML(instrumentos, tipos, marcas);
 
-    // 🔹 Puppeteer para Render
     const browser = await puppeteer.launch({
       headless: true,
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
 
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "networkidle0" });
+    await page.setContent(html, { waitUntil: "networkidle0", timeout: 0 });
 
     const pdfBuffer = await page.pdf({
       format: "letter",
       printBackground: true,
-      margin: {
-        top: "20mm",
-        bottom: "20mm",
-        left: "15mm",
-        right: "15mm",
-      },
+      margin: { top: "20mm", bottom: "20mm", left: "15mm", right: "15mm" },
       timeout: 0,
     });
 
     await browser.close();
 
-    // Headers para descarga
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
       `attachment; filename="CATALOGO-INSTRUMENTOS-MUSICALES-Y-ACCESORIOS-CLN-${fechaDeHoyStrGuion()}.pdf"`
     );
-
     res.send(pdfBuffer);
   } catch (error) {
     console.error(error);
