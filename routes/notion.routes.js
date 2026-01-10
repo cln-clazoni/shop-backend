@@ -89,6 +89,7 @@ router.get("/catalogo-pdf", async (req, res) => {
         left: "15mm",
         right: "15mm",
       },
+      timeout: 0,
     });
 
     await browser.close();
