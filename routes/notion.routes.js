@@ -1,5 +1,8 @@
 const express = require("express");
 const puppeteer = require("puppeteer");
+const fs = require("fs");
+const path = require("path");
+
 const { generateHTML } = require("../services/pdf.service");
 const { fechaDeHoyStrGuion } = require("../services/fecha.service");
 
