@@ -58,6 +58,7 @@ router.get("/marcas", async (req, res) => {
     });
   }
 });
+
 router.get("/catalogo-pdf", async (req, res) => {
   console.log("Generando PDF del catálogo...");
   req.setTimeout(0);
@@ -75,6 +76,7 @@ router.get("/catalogo-pdf", async (req, res) => {
     const browser = await puppeteer.launch({
       headless: true,
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      timeout: 0,
     });
 
     const page = await browser.newPage();
