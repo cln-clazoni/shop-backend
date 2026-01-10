@@ -1,15 +1,8 @@
 const express = require("express");
 const puppeteer = require("puppeteer");
-const fs = require("fs");
-const path = require("path");
 
 const { generateHTML } = require("../services/pdf.service");
 const { fechaDeHoyStrGuion } = require("../services/fecha.service");
-
-const cacheDir = "/tmp/puppeteer-cache";
-const versionDir = fs.readdirSync(cacheDir).find(d => d.startsWith("linux-"));
-const chromePath = path.join(cacheDir, versionDir, "chrome-linux", "chrome");
-
 
 const {
   getDatabaseData,
@@ -82,7 +75,6 @@ router.get("/catalogo-pdf", async (req, res) => {
     const browser = await puppeteer.launch({
       headless: true, // headless moderno compatible
       args: ["--no-sandbox", "--disable-setuid-sandbox"], // 🔹 obligatorio en Render
-      executablePath: chromePath, // path donde Puppeteer instaló Chromium
     });
 
     const page = await browser.newPage();
