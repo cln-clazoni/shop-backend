@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Generador de Catálogo</title>
+    <style>
+      /* --- ESTILOS IDENTICOS A LA PLANTILLA ANTERIOR --- */
+      :root {
+        --primary-red: #c00000;
+        --black: #000000;
+        --bg-gray: #f2f3f5;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: "Arial", sans-serif;
+      }
+
+      body {
+        background-color: #555;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+      }
+
+      .page {
+        width: 215.9mm;
+        height: 279.4mm;
+        background-color: var(--bg-gray);
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        margin-bottom: 20px; /* Separación visual en pantalla */
+        overflow: hidden;
+        /* CRUCIAL PARA PDF: Salto de página después de cada hoja */
+        page-break-after: always;
+      }
+
+      /* Ocultar la última página vacía si sucediera */
+      .page:last-child {
+        page-break-after: auto;
+      }
+
+      header {
+        background-color: var(--primary-red);
+        color: white;
+        padding: 30px 40px 10px 40px;
+        height: 18%;
+        border-bottom-right-radius: 80px;
+      }
+      header h1 {
+        font-size: 28pt;
+        font-weight: 800;
+        line-height: 1.1;
+      }
+      .subtitle-badge {
+        background-color: var(--black);
+        color: white;
+        padding: 8px 30px 8px 15px;
+        display: inline-block;
+        margin-top: 15px;
+        font-size: 10pt;
+        font-weight: bold;
+        clip-path: polygon(0 0, 90% 0, 100% 100%, 0 100%);
+      }
+
+      .catalog-grid {
+        padding: 20px 30px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(3, 1fr);
+        gap: 20px;
+        flex-grow: 1;
+      }
+
+      .card {
+        background: white;
+        position: relative;
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        overflow: hidden;
+      }
+
+      .brand-tag {
+        background-color: var(--black);
+        color: white;
+        font-weight: bold;
+        font-size: 9pt;
+        padding: 5px 20px 5px 10px;
+        position: absolute;
+        top: 10px;
+        left: 0;
+        z-index: 2;
+        clip-path: polygon(0 0, 85% 0, 100% 50%, 85% 100%, 0 100%);
+      }
+
+      .card-header {
+        margin-top: 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        font-size: 8pt;
+      }
+      .label-red {
+        color: var(--primary-red);
+        font-weight: bold;
+      }
+      .product-name {
+        font-weight: bold;
+        font-style: italic;
+        text-align: right;
+        max-width: 60%;
+      }
+      .accessories-list {
+        font-size: 7pt;
+        color: #555;
+        margin-top: 2px;
+        max-width: 90%;
+      }
+
+      .image-container {
+        flex-grow: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 5px;
+      }
+      .image-container img {
+        max-width: 100%;
+        max-height: 80px;
+        object-fit: contain;
+      }
+
+      .card-footer {
+        font-size: 9pt;
+        font-weight: bold;
+        font-style: italic;
+        z-index: 2;
+      }
+      .corner-triangle {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 0;
+        height: 0;
+        border-style: solid;
+        border-width: 0 0 50px 50px;
+        border-color: transparent transparent var(--primary-red) transparent;
+        z-index: 1;
+      }
+
+      footer {
+        display: flex;
+        flex-direction: column;
+        background-color: var(--primary-red);
+        color: white;
+        text-align: center;
+        height: 40px;
+        align-items: center;
+        justify-content: center;
+      }
+
+      @media print {
+        body {
+          background: none;
+          padding: 0;
+        }
+        .page {
+          box-shadow: none;
+          margin: 0;
+          width: 100%;
+          height: 100vh;
+        }
+        * {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="catalog-container"></div>
+
+    <script>
+      const productosData = [
+        {
+          marca: "FENDER",
+          nombre: "Stratocaster Pro",
+          accesorios: "Funda, Cable",
+          color: "Rojo Fiesta",
+          img: "https://via.placeholder.com/150/c00000/FFFFFF?text=Guitarra",
+        },
+        {
+          marca: "GIBSON",
+          nombre: "Les Paul Standard",
+          accesorios: "Estuche rígido",
+          color: "Sunburst",
+          img: "https://via.placeholder.com/150/000000/FFFFFF?text=LesPaul",
+        },
+        {
+          marca: "YAMAHA",
+          nombre: "Batería Stage",
+          accesorios: "Baquetas, Llave",
+          color: "Negro Mate",
+          img: "https://via.placeholder.com/150/333333/FFFFFF?text=Bateria",
+        },
+        {
+          marca: "CASIO",
+          nombre: "Teclado CT-X",
+          accesorios: "Atril, Fuente",
+          color: "Gris",
+          img: "https://via.placeholder.com/150/555555/FFFFFF?text=Teclado",
+        },
+        {
+          marca: "SHURE",
+          nombre: "Micrófono SM58",
+          accesorios: "Pipeta, Bolsa",
+          color: "Plata",
+          img: "https://via.placeholder.com/150/888888/FFFFFF?text=Microfono",
+        },
+        {
+          marca: "IBANEZ",
+          nombre: "Bajo SR300",
+          accesorios: "Correa",
+          color: "Azul Eléctrico",
+          img: "https://via.placeholder.com/150/0000AA/FFFFFF?text=Bajo",
+        },
+        {
+          marca: "ROLAND",
+          nombre: "Sintetizador",
+          accesorios: "Manual, Cable",
+          color: "Negro",
+          img: "https://via.placeholder.com/150/111111/FFFFFF?text=Sinthis",
+        },
+        {
+          marca: "MARSHALL",
+          nombre: "Amplificador 50W",
+          accesorios: "Cable Power",
+          color: "Dorado/Negro",
+          img: "https://via.placeholder.com/150/AA8800/FFFFFF?text=Ampli",
+        },
+        {
+          marca: "BOSS",
+          nombre: "Pedal Distorsión",
+          accesorios: "Batería 9V",
+          color: "Naranja",
+          img: "https://via.placeholder.com/150/FF6600/FFFFFF?text=Pedal",
+        },
+        // --- FIN DE PAGINA 1 (9 items) ---
+        {
+          marca: "TAYLOR",
+          nombre: "Acústica 114ce",
+          accesorios: "Funda acolchada",
+          color: "Natural",
+          img: "https://via.placeholder.com/150/996633/FFFFFF?text=Acustica",
+        },
+        {
+          marca: "KORG",
+          nombre: "Afinador Digital",
+          accesorios: "Manual",
+          color: "Blanco",
+          img: "https://via.placeholder.com/150/EEEEEE/000000?text=Afinador",
+        },
+        {
+          marca: "PEARL",
+          nombre: "Redoblante",
+          accesorios: "Llave afinación",
+          color: "Cromo",
+          img: "https://via.placeholder.com/150/CCCCCC/000000?text=Snare",
+        },
+        {
+          marca: "ZILDJIAN",
+          nombre: "Platillo Crash",
+          accesorios: "Protector",
+          color: "Bronce",
+          img: "https://via.placeholder.com/150/D4AF37/000000?text=Platillo",
+        },
+      ];
+
+      // 2. FUNCIÓN PARA GENERAR UNA TARJETA INDIVIDUAL (HTML string)
+      function crearTarjetaHTML(producto) {
+        // Si el producto es null (espacio vacío para completar la grilla), retornamos div vacío
+        if (!producto)
+          return '<div class="card" style="visibility: hidden;"></div>';
+
+        return `
+            <div class="card">
+                <div class="brand-tag">Marca: ${producto.marca}</div>
+                <div class="card-header">
+                    <div>
+                        <span class="label-red">Accesorios:</span>
+                        <div class="accessories-list">${producto.accesorios}</div>
+                    </div>
+                    <div class="product-name">${producto.nombre}</div>
+                </div>
+                <div class="image-container">
+                    <img src="${producto.img}" alt="${producto.nombre}">
+                </div>
+                <div class="card-footer">
+                    Color:<br>${producto.color}
+                </div>
+                <div class="corner-triangle"></div>
+            </div>
+            `;
+      }
+
+      // 3. FUNCIÓN PRINCIPAL DE RENDERIZADO
+      function generarCatalogo(datos) {
+        const contenedorPrincipal =
+          document.getElementById("catalog-container");
+        const itemsPorPagina = 9;
+
+        // Calculamos cuántas páginas necesitamos
+        const totalPaginas = Math.ceil(datos.length / itemsPorPagina);
+
+        for (let i = 0; i < totalPaginas; i++) {
+          // Obtenemos los 9 productos para esta página específica
+          const inicio = i * itemsPorPagina;
+          const fin = inicio + itemsPorPagina;
+          const grupoProductos = datos.slice(inicio, fin);
+
+          // Creamos la estructura de la página
+          const nuevaPagina = document.createElement("div");
+          nuevaPagina.className = "page";
+
+          // Header HTML
+          const headerHTML = `
+                    <header>
+                        <h1><img src="" alt="" style="display:none">Catalogo tienda<br>instrumentos musicales</h1>
+                        <div class="subtitle-badge">Productos disponibles en nuestra tienda</div>
+                    </header>
+                `;
+
+          // Footer HTML
+          const footerHTML = `<footer>
+  <div style="padding:0; font-weight:bold; font-size:10pt;">
+    Teléfonos de contacto: 78859999 - 77729222 - 78856666
+  </div>
+  <div style="padding:0; font-size:8pt;">
+    Fecha de emisión: 5/5/5
+  </div>
+</footer>
+`;
+
+          // Generar Grid y Tarjetas
+          let cardsHTML = "";
+          grupoProductos.forEach((prod) => {
+            cardsHTML += crearTarjetaHTML(prod);
+          });
+
+          // Rellenar con tarjetas vacías si la última página tiene menos de 9
+          // Esto mantiene la estructura visual de la grilla
+          const faltantes = itemsPorPagina - grupoProductos.length;
+          for (let j = 0; j < faltantes; j++) {
+            cardsHTML += crearTarjetaHTML(null);
+          }
+
+          // Ensamblar todo dentro de la página
+          nuevaPagina.innerHTML = `
+                    ${headerHTML}
+                    <div class="catalog-grid">
+                        ${cardsHTML}
+                    </div>
+                    ${footerHTML}
+                `;
+
+          // Agregar página al documento
+          contenedorPrincipal.appendChild(nuevaPagina);
+        }
+      }
+
+      // 4. EJECUTAR AL CARGAR
+      generarCatalogo(productosData);
+    </script>
+  </body>
+</html>
