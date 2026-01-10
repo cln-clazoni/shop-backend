@@ -57,7 +57,6 @@ router.get("/marcas", async (req, res) => {
     });
   }
 });
-
 router.get("/catalogo-pdf", async (req, res) => {
   try {
     const data = await getDatabaseData();
@@ -70,11 +69,16 @@ router.get("/catalogo-pdf", async (req, res) => {
     const marcas = parseNotionDataBranch(dataBranch.results);
 
     const html = generateHTML(instrumentos, tipos, marcas);
+
+    // 🔹 Puppeteer para Render
     const browser = await puppeteer.launch({
-      headless: "new",
+      headless: true, // headless moderno compatible
+      args: ["--no-sandbox", "--disable-setuid-sandbox"], // 🔹 obligatorio en Render
     });
+
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle0" });
+
     const pdfBuffer = await page.pdf({
       format: "letter",
       printBackground: true,
@@ -85,7 +89,9 @@ router.get("/catalogo-pdf", async (req, res) => {
         right: "15mm",
       },
     });
+
     await browser.close();
+
     // Headers para descarga
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
@@ -102,5 +108,6 @@ router.get("/catalogo-pdf", async (req, res) => {
     });
   }
 });
+
 
 module.exports = router;
