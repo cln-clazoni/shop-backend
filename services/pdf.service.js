@@ -1,5 +1,28 @@
 const { fechaDeHoyStr } = require("./fecha.service");
-function generateHTML(instrumentos, tipos, marcas) {
+const sharp = require("sharp");
+const axios = require("axios");
+
+async function comprimirImagen(url, anchoMax = 800, calidad = 70) {
+  try {
+    // Descargar la imagen desde la URL
+    const response = await axios.get(url, { responseType: "arraybuffer" });
+    const buffer = Buffer.from(response.data, "binary");
+
+    // Comprimir con sharp
+    const comprimido = await sharp(buffer)
+      .resize({ width: anchoMax }) // ancho máximo (mantiene proporción)
+      .png({ quality: calidad }) // calidad JPEG 70%
+      .toBuffer();
+
+    // Convertir a base64 para usarlo en HTML
+    return `data:image/png;base64,${comprimido.toString("base64")}`;
+  } catch (error) {
+    console.error("Error comprimiendo imagen:", error);
+    return url; // fallback si falla
+  }
+}
+
+async function generateHTML(instrumentos, tipos, marcas) {
   let paginasHTML = "";
   const itemsPorPagina = 9;
 
@@ -12,7 +35,7 @@ function generateHTML(instrumentos, tipos, marcas) {
   }, {});
 
   // 2. Crear tarjeta
-  const crearTarjeta = (producto) => {
+  const crearTarjeta = async (producto) => {
     if (!producto)
       return `<div class="card" style="visibility:hidden;border:none;"></div>`;
 
@@ -23,9 +46,14 @@ function generateHTML(instrumentos, tipos, marcas) {
     const accesorios = producto.accesories || "";
     const color = producto.color || "";
 
-    const imagenHTML = producto.photo
-      ? `<img src="${producto.photo}" alt="${nombre}">`
-      : `<div class="img-placeholder-text">Sin imagen</div>`;
+    let imagenHTML;
+
+    if (producto.photo) {
+      const imagenComprimida = await comprimirImagen(producto.photo, 800, 70);
+      imagenHTML = `<img src="${imagenComprimida}" alt="${nombre}">`;
+    } else {
+      imagenHTML = `<div class="img-placeholder-text">Sin imagen</div>`;
+    }
 
     return `
       <div class="card">
@@ -59,7 +87,7 @@ function generateHTML(instrumentos, tipos, marcas) {
   };
 
   // 3. Generar páginas por tipo
-  Object.keys(instrumentosPorTipo).forEach((typeId) => {
+  for (const typeId of Object.keys(instrumentosPorTipo)) {
     const listaInstrumentos = instrumentosPorTipo[typeId];
     const tipoObj = tipos.find((t) => t.id == typeId);
     const nombreTipo = tipoObj ? tipoObj.name : "General";
@@ -72,13 +100,14 @@ function generateHTML(instrumentos, tipos, marcas) {
       const inicio = i * itemsPorPagina;
       const grupo = listaInstrumentos.slice(inicio, inicio + itemsPorPagina);
 
-      let gridContent = grupo.map((inst) => crearTarjeta(inst)).join("");
+      let gridContent = await Promise.all(grupo.map((inst) => crearTarjeta(inst)));
+      gridContent = gridContent.join("");
 
-      // Rellenar grilla 3x3
       const faltantes = itemsPorPagina - grupo.length;
-      for (let j = 0; j < faltantes; j++) {
-        gridContent += crearTarjeta(null);
-      }
+      const placeholders = await Promise.all(
+        Array.from({ length: faltantes }, () => crearTarjeta(null))
+      );
+      gridContent += placeholders.join("");
 
       paginasHTML += `
         <div class="page">
@@ -116,7 +145,7 @@ function generateHTML(instrumentos, tipos, marcas) {
         </div>
       `;
     }
-  });
+  }
 
   // 4. HTML completo
   return `

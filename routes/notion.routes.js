@@ -71,7 +71,7 @@ router.get("/catalogo-pdf", async (req, res) => {
     const dataBranch = await getDatabaseDataBranch();
     const marcas = parseNotionDataBranch(dataBranch.results);
 
-    const html = generateHTML(instrumentos, tipos, marcas);
+    const html = await generateHTML(instrumentos, tipos, marcas);
 
     const browser = await puppeteer.launch({
       headless: true,
