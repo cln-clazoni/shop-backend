@@ -1,6 +1,7 @@
 const express = require("express");
 const puppeteer = require("puppeteer");
-
+const fs = require("fs");
+const path = require("path");
 const { generateHTML } = require("../services/pdf.service");
 const { fechaDeHoyStrGuion } = require("../services/fecha.service");
 
@@ -59,10 +60,11 @@ router.get("/marcas", async (req, res) => {
   }
 });
 
-router.get("/catalogo-pdf", async (req, res) => {
+router.get("/generar-pdf", async (req, res) => {
   console.log("Generando PDF del catálogo...");
   req.setTimeout(0);
   res.setTimeout(0);
+
   try {
     const data = await getDatabaseData();
     const instrumentos = parseNotionData(data.results);
@@ -91,18 +93,54 @@ router.get("/catalogo-pdf", async (req, res) => {
 
     await browser.close();
 
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="CATALOGO-INSTRUMENTOS-MUSICALES-Y-ACCESORIOS-CLN-${fechaDeHoyStrGuion()}.pdf"`
+    // 📂 Ruta donde quieres guardar el archivo
+    const filePath = path.join(
+      __dirname,
+      "pdfs",
+      `CATALOGO-INSTRUMENTOS-MUSICALES-Y-ACCESORIOS-CLN.pdf`
     );
-    res.send(pdfBuffer);
+
+    // Guardar el PDF en el servidor
+    fs.writeFileSync(filePath, pdfBuffer);
+
+    // Responder al cliente con un mensaje de éxito
+    res.json({
+      message: "PDF generado y guardado en el servidor",
+      path: filePath,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({
       message: "Error generando PDF",
       error: error.message,
     });
+  }
+});
+
+router.get("/descargar-catalogo-pdf", async (req, res) => {
+  try {
+    const filePath = path.join(
+      __dirname,
+      "pdfs",
+      `CATALOGO-INSTRUMENTOS-MUSICALES-Y-ACCESORIOS-CLN.pdf`
+    );
+    if (!fs.existsSync(filePath)) {
+      return res
+        .status(404)
+        .json({ message: "El PDF no existe en el servidor" });
+    }
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="CATALOGO-INSTRUMENTOS-MUSICALES-Y-ACCESORIOS-CLN-${fechaDeHoyStrGuion()}.pdf"`
+    );
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ message: "Error descargando PDF", error: error.message });
   }
 });
 
